@@ -12,13 +12,13 @@ const register = asyncHandler(async (req, res) => {
 
   const userExist = await User.findOne({ email });
 
-  if (!userExist) {
+  if (userExist) {
     // check if user exist
     res.status(400);
     throw new Error("User already exists!");
   }
 
-  const user = await User({
+  const user = await User.create({
     // create new user
     name,
     email,
@@ -30,6 +30,7 @@ const register = asyncHandler(async (req, res) => {
     res.status(200).json({
       _id: user._id,
       name: user.name,
+      email: user.email,
       role: user.role,
       token: generateAccessToken(user._id),
     });
@@ -39,4 +40,28 @@ const register = asyncHandler(async (req, res) => {
   }
 });
 
-export { register };
+const login = asyncHandler(async (req, res) => {
+  const { email, role, password } = req.body;
+
+  if (!email || !role || !password) {
+    res.status(400);
+    throw new Error("All fields are required");
+  }
+
+  const user = await User.findOne({ email });
+
+  if (user && user.matchPassword(password)) {
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateAccessToken(user._id),
+    });
+  } else {
+    res.status(401);
+    throw new Error("invalid email or password");
+  }
+});
+
+export { register, login };
