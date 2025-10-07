@@ -15,10 +15,19 @@ const userSchema = Schema(
       type: String,
       required: true,
       enum: ["user", "admin"],
+      default: "user",
     },
     password: {
       type: String,
       required: true,
+    },
+    storageUsed: {
+      type: Number,
+      default: 0,
+    },
+    storageLimit: {
+      type: Number,
+      default: 100 * 1024 * 1024, //100mb
     },
   },
   { timestamps: true }

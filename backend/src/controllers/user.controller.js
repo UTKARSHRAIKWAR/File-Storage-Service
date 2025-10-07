@@ -41,9 +41,9 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  const { email, role, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!email || !role || !password) {
+  if (!email || !password) {
     res.status(400);
     throw new Error("All fields are required");
   }
