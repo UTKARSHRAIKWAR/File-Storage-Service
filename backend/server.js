@@ -1,4 +1,4 @@
-import express from "express";
+import express, { urlencoded } from "express";
 import dotenv from "dotenv";
 import connectDB from "./src/utils/connectDB.js";
 import userRouter from "./src/routes/user.routes.js";
@@ -10,9 +10,11 @@ connectDB();
 const app = express();
 
 app.use(express.json());
+// app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use("/temp", express.static("temp"));
 
 app.use("/api/auth", userRouter);
-app.use("/api/file", filesRoute);
+app.use("/api/files", filesRoute);
 
 const PORT = process.env.PORT || 5000;
 
