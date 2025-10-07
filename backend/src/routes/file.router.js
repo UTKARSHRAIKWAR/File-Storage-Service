@@ -10,7 +10,7 @@ import auth from "../middlewares/auth.middleware.js";
 const router = Router();
 
 router.post("/upload", auth, upload.single("file"), uploadFile);
-router.get("/:id", getFile);
-router.delete("/:id", deleteFile);
+router.get("/:id", auth, getFile);
+router.delete("/:id", auth, deleteFile);
 
 export default router;
