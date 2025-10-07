@@ -30,21 +30,13 @@ const uploadFile = async (req, res) => {
 
     await s3.send(new PutObjectCommand(uploadParams));
 
-    //create signed url
-
-    const command = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: key,
-    });
-    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
-
     //save metaData to database
     const newFile = await File.create({
       ownerId: userId,
       fileName: req.file.originalname,
       size: req.file.size,
       key: key,
-      url: signedUrl,
+      mimeType: req.file.mimetype,
     });
 
     fs.unlinkSync(localPath);
@@ -100,7 +92,29 @@ const deleteFile = async (req, res) => {
     throw new Error("Failed to delete file");
   }
 };
-const shareFile = async (req, res) => {};
+const shareFile = async (req, res) => {
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      res.status(404);
+      throw new Error("File not found");
+    }
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: file.key,
+    });
+
+    const url = await getSignedUrl(s3, command, { expiresIn: 86400 });
+
+    res.status(200).json({
+      success: true,
+      shareUrl: url,
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("could not generate url");
+  }
+};
 const listFile = async (req, res) => {};
 
 export { uploadFile, getFile, listFile, deleteFile, shareFile };

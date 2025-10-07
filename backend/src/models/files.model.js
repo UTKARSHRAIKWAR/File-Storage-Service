@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const fileSchema = mongoose.Schema(
   {
@@ -19,9 +20,8 @@ const fileSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    url: {
+    mimeType: {
       type: String,
-      required: true,
     },
   },
   { timestamps: true }
