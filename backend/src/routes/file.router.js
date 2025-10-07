@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   deleteFile,
   getFile,
+  listFile,
   shareFile,
   uploadFile,
 } from "../controllers/file.controller.js";
@@ -10,6 +11,7 @@ import auth from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
+router.get("/", auth, listFile);
 router.post("/upload", auth, upload.single("file"), uploadFile);
 router.get("/:id", auth, getFile);
 router.get("/share/:id", auth, shareFile);

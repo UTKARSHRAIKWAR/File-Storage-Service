@@ -115,6 +115,17 @@ const shareFile = async (req, res) => {
     throw new Error("could not generate url");
   }
 };
-const listFile = async (req, res) => {};
+const listFile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const files = await File.find({ ownerId: userId }).select(
+      "fileName size mimeType key uploadedAt"
+    );
+    res.status(200).json({ success: true, files });
+  } catch (error) {
+    res.status(500);
+    throw new Error("could not list files");
+  }
+};
 
 export { uploadFile, getFile, listFile, deleteFile, shareFile };
