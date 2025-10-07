@@ -1,7 +1,8 @@
 import fs from "fs";
 import s3 from "../config/s3.js";
 import File from "../models/files.model.js";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const uploadFile = async (req, res) => {
   const userId = req.user._id;
@@ -20,13 +21,18 @@ const uploadFile = async (req, res) => {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: key,
       Body: fs.createReadStream(localPath),
-      ContentType: req.file.mimeType,
+      ContentType: req.file.mimetype,
     };
 
     await s3.send(new PutObjectCommand(uploadParams));
-    const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
-    fs.unlinkSync(localPath);
+    //create signed url
+
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+    });
+    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
     //save metaData to database
     const newFile = await File.create({
@@ -34,8 +40,10 @@ const uploadFile = async (req, res) => {
       fileName: req.file.originalname,
       size: req.file.size,
       key: key,
-      url: url,
+      url: signedUrl,
     });
+
+    fs.unlinkSync(localPath);
 
     res.status(200).json({ success: true, file: newFile });
   } catch (error) {
