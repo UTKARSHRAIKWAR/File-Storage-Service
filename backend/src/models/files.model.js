@@ -23,11 +23,6 @@ const fileSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    isPublic: {
-      type: Boolean,
-      default: false,
-    },
-    sharedWith: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );
