@@ -1,5 +1,0 @@
-{
-  "dependencies": {
-    "client-s3": "github:aws-sdk/client-s3"
-  }
-}
