@@ -1,7 +1,11 @@
 import fs from "fs";
 import s3 from "../config/s3.js";
 import File from "../models/files.model.js";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const uploadFile = async (req, res) => {
@@ -75,8 +79,28 @@ const getFile = async (req, res) => {
     throw new Error("could not generate url");
   }
 };
-const listFile = async (req, res) => {};
-const deleteFile = async (req, res) => {};
+const deleteFile = async (req, res) => {
+  try {
+    const file = await File.findByIdAndDelete(req.params.id);
+    if (!file) {
+      res.status(404);
+      throw new Error("file not found");
+    }
+
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: file.key,
+      })
+    );
+
+    res.status(200).json({ success: true, message: "File deleted" });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to delete file");
+  }
+};
 const shareFile = async (req, res) => {};
+const listFile = async (req, res) => {};
 
 export { uploadFile, getFile, listFile, deleteFile, shareFile };
