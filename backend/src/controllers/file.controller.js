@@ -52,7 +52,29 @@ const uploadFile = async (req, res) => {
     throw new Error("File upload error");
   }
 };
-const getFile = async (req, res) => {};
+const getFile = async (req, res) => {
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      res.status(404);
+      throw new Error("File not found");
+    }
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: file.key,
+    });
+
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+    res.status(200).json({
+      success: true,
+      url,
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("could not generate url");
+  }
+};
 const listFile = async (req, res) => {};
 const deleteFile = async (req, res) => {};
 const shareFile = async (req, res) => {};
