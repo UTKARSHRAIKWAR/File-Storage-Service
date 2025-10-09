@@ -5,7 +5,7 @@ import { generateAccessToken } from "../config/generateToken.js";
 const register = asyncHandler(async (req, res) => {
   const { name, email, role, password } = req.body;
 
-  if (!name || !email || !role || !password) {
+  if (!name || !email || !password) {
     res.status(400);
     throw new Error("All field are required");
   }

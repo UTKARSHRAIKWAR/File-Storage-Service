@@ -15,6 +15,7 @@
     "@aws-sdk/s3-request-presigner": "^3.901.0",
     "bcryptjs": "^3.0.2",
     "client-s3": "github:aws-sdk/client-s3",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "express-async-handler": "^1.2.0",

@@ -1,4 +1,5 @@
 import express, { urlencoded } from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./src/utils/connectDB.js";
 import userRouter from "./src/routes/user.routes.js";
@@ -8,6 +9,12 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+const corsOptions = {
+  origin: "http://localhost:5173", // Replace with your frontend's origin
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true, limit: "16kb" }));
