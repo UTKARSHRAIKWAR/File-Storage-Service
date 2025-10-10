@@ -1,123 +1,220 @@
-import React, { useState } from "react";
-import UploadCard from "../components/UploadCard";
+import React, { useState, useEffect } from "react";
 import FileCard from "../components/FileCard";
+import UploadCard from "../components/UploadCard";
+import Sidebar from "../components/Sidebar";
+import api from "../axios";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Dashboard = () => {
-  const [files, setFiles] = useState([
-    {
-      name: "photo_2023.jpg",
-      type: "image",
-      size: "2.5 MB",
-      date: "Oct 27, 2023",
-      url: "https://via.placeholder.com/300",
-    },
-    { name: "report.pdf", type: "pdf", size: "1.2 MB", date: "Oct 26, 2023" },
-    { name: "archive.zip", type: "zip", size: "15.8 MB", date: "Oct 25, 2023" },
-    {
-      name: "meeting_record.mp4",
-      type: "video",
-      size: "55.1 MB",
-      date: "Oct 24, 2023",
-    },
-  ]);
+  const [files, setFiles] = useState([]);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleUpload = (newFiles) => {
-    const formattedFiles = newFiles.map((file) => ({
-      name: file.name,
-      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      type: file.name.split(".").pop(),
-      date: new Date().toLocaleDateString(),
-      url: URL.createObjectURL(file),
-    }));
-    setFiles((prev) => [...formattedFiles, ...prev]);
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+        const token = userInfo?.token;
+        if (!token) return;
+
+        const { data } = await api.get("/api/files", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setFiles(data.files || []);
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to load files");
+      }
+    };
+    fetchFiles();
+  }, []);
+
+  const handleUpload = async (newFiles) => {
+    setLoading(true);
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.token;
+      if (!token) return toast.error("User not logged in");
+
+      const formData = new FormData();
+      newFiles.forEach((f) => formData.append("file", f));
+
+      const { data } = await api.post("/api/files/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setFiles((prev) => [data.file, ...prev]);
+      toast.success("File uploaded successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("File upload failed", {
+        description: error.response?.data?.message || "Try again later.",
+      });
+    } finally {
+      setLoading(false);
+      setIsUploadOpen(false);
+    }
   };
 
-  const handleDownload = (file) => alert(`Downloading ${file.name}`);
-  const handleShare = (file) => alert(`Sharing ${file.name}`);
+  const handleDownload = async (file) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.token;
+      if (!token) return toast.error("User not logged in");
+
+      const { data } = await api.get(`/api/files/${file._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!data.url) throw new Error("No download URL received");
+      window.open(data.url, "_blank");
+    } catch (error) {
+      console.error(error);
+      toast.error("Download failed");
+    }
+  };
+
+  const handleDelete = async (file) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.token;
+      if (!token) return toast.error("User not logged in");
+
+      await api.delete(`/api/files/${file._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setFiles((prev) => prev.filter((f) => f._id !== file._id));
+
+      toast.success("File is deleted!", {
+        description: "File has been deleted.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete file", {
+        description: error.response?.data?.message || "Try again later.",
+      });
+    }
+  };
+
+  const handleShare = async (file) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.token;
+      if (!token) return toast.error("User not logged in");
+
+      const { data } = await api.get(`/api/files/share/${file._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!data.url) throw new Error("No share URL received");
+
+      await navigator.clipboard.writeText(data.url);
+
+      toast.success("Shareable link copied to clipboard!", {
+        description: "Anyone with this link can access the file.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to generate share link", {
+        description: error.response?.data?.message || "Try again later.",
+      });
+    }
+  };
 
   return (
-    // THEME FIX: Added a background gradient to the entire page for depth.
     <div className="flex bg-gray-100 dark:bg-gray-900 min-h-screen">
-      {/* Sidebar */}
-      {/* THEME FIX: Replaced 'glassmorphic' with specific Tailwind classes for a proper effect. */}
-      <aside className="w-20 lg:w-64 bg-white/30 dark:bg-gray-800/30 backdrop-blur-lg border-r border-white/20 dark:border-gray-700/50 p-4 lg:p-6 flex flex-col justify-between fixed h-full z-20">
-        <div>
-          <div className="flex items-center gap-2 mb-12">
-            {/* THEME FIX: Replaced 'primary' with a specific color for consistency. */}
-            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-4xl">
-              cloud
-            </span>
-            <h1 className="hidden lg:block text-2xl font-bold text-gray-900 dark:text-white">
-              FileCloud
-            </h1>
-          </div>
-          <nav className="flex flex-col gap-4">
-            <a
-              className="flex items-center gap-4 p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-blue-500/20 dark:hover:bg-blue-400/20 transition-colors"
-              href="#!"
-            >
-              <span className="material-symbols-outlined">home</span>
-              <span className="hidden lg:inline font-medium">Home</span>
-            </a>
-            <a
-              className="flex items-center gap-4 p-3 rounded-lg bg-blue-500/20 dark:bg-blue-400/30 text-blue-600 dark:text-blue-300 font-bold transition-colors"
-              href="#!"
-            >
-              <span className="material-symbols-outlined">folder</span>
-              <span className="hidden lg:inline font-medium">My Files</span>
-            </a>
-            <a
-              className="flex items-center gap-4 p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-blue-500/20 dark:hover:bg-blue-400/20 transition-colors"
-              href="#!"
-            >
-              <span className="material-symbols-outlined">group</span>
-              <span className="hidden lg:inline font-medium">Shared</span>
-            </a>
-            <a
-              className="flex items-center gap-4 p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-blue-500/20 dark:hover:bg-blue-400/20 transition-colors"
-              href="#!"
-            >
-              <span className="material-symbols-outlined">delete</span>
-              <span className="hidden lg:inline font-medium">Trash</span>
-            </a>
-          </nav>
-        </div>
-        <div>
-          <a
-            className="flex items-center gap-4 p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-blue-500/20 dark:hover:bg-blue-400/20 transition-colors"
-            href="#!"
-          >
-            <span className="material-symbols-outlined">account_circle</span>
-            <span className="hidden lg:inline font-medium">Profile</span>
-          </a>
-        </div>
-      </aside>
+      <Sidebar />
 
-      {/* Main Content */}
-      <main className="ml-20 lg:ml-64 flex-1 p-6 lg:p-10">
-        <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-8">
+      <main className="ml-20 lg:ml-64 flex-1 p-6 lg:p-10 relative">
+        <div className="flex justify-between items-center mb-8">
+          <div className="relative w-full max-w-lg">
+            <input
+              type="text"
+              placeholder="Search files..."
+              className="w-full bg-white dark:bg-gray-800 rounded-full py-3 px-5 pl-12 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 dark:text-gray-200"
+            />
+            <span className="material-symbols-outlined absolute left-4 top-3.5 text-gray-400">
+              search
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsUploadOpen(true)}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 py-2 flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined">upload</span>
+              {loading ? "Uploading..." : "Upload"}
+            </button>
+            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+              <img
+                src="/profile.png"
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+
+        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-6">
           My Files
         </h2>
 
-        {/* Combined Upload and Files into a single grid for layout consistency */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <UploadCard onUpload={handleUpload} />
-          {files.map((file, idx) => (
-            <FileCard
-              key={idx}
-              file={file}
-              onDownload={handleDownload}
-              onShare={handleShare}
-            />
-          ))}
-        </div>
+        {files.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400">
+            No files uploaded yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {files.map((file) => (
+              <FileCard
+                key={file._id}
+                file={{
+                  ...file,
+                  url: file.url || file.preview || "/default-preview.png",
+                }}
+                onDownload={handleDownload}
+                onShare={handleShare}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* Floating Action Button */}
-        {/* THEME FIX: Updated button color to match the new palette. */}
-        <button className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl hover:bg-blue-700 transition-transform hover:scale-110">
+        <button
+          onClick={() => setIsUploadOpen(true)}
+          disabled={loading}
+          className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl hover:bg-blue-700 transition-transform hover:scale-110 disabled:opacity-50"
+        >
           <span className="material-symbols-outlined text-3xl">add</span>
         </button>
       </main>
+
+      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+        <DialogContent
+          aria-describedby="upload-dialog-description"
+          className="max-w-md bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              Upload Files
+            </DialogTitle>
+          </DialogHeader>
+          <p id="upload-dialog-description" className="sr-only">
+            Select or drag files to upload them securely to the cloud.
+          </p>
+          <UploadCard onUpload={handleUpload} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

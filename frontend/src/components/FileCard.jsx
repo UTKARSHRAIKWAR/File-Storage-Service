@@ -1,72 +1,91 @@
 import React from "react";
 
-const FileCard = ({ file, onDownload, onShare }) => {
-  const fileIcons = {
-    pdf: "picture_as_pdf",
-    image: "image",
-    zip: "folder_zip",
-    video: "videocam",
+// HELPER 1: Get the simple type from the full MIME type
+const getTypeFromMime = (mimeType) => {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType === "application/pdf") return "pdf";
+  if (
+    mimeType === "application/zip" ||
+    mimeType === "application/x-zip-compressed"
+  )
+    return "zip";
+  return "default";
+};
+
+// HELPER 2: Format bytes into a readable string (KB, MB)
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
+const FileCard = ({ file, onDownload, onShare, onDelete }) => {
+  const fileConfig = {
+    pdf: { icon: "picture_as_pdf", colorClass: "text-red-500" },
+    image: { icon: "image", colorClass: "text-blue-500" },
+    zip: { icon: "folder_zip", colorClass: "text-green-500" },
+    video: { icon: "videocam", colorClass: "text-purple-500" },
+    default: { icon: "article", colorClass: "text-gray-500" },
   };
 
-  const fileColors = {
-    pdf: "red",
-    image: "blue",
-    zip: "green",
-    video: "purple",
-  };
+  // FIX 1: Use the helper function to get type from 'mimeType'
+  const type = getTypeFromMime(file.mimeType);
+  const { icon, colorClass } = fileConfig[type];
 
-  const type = file.type || "pdf";
-  const color = fileColors[type];
+  // FIX 3: Format the date (assuming you have a 'createdAt' field from your database)
+  const displayDate = file.createdAt
+    ? new Date(file.createdAt).toLocaleDateString()
+    : new Date().toLocaleDateString(); // Fallback to today's date
 
   return (
-    <div className="bg-white dark:bg-background-dark/50 rounded-xl p-4 flex flex-col gap-4 shadow-sm hover:shadow-lg transition-shadow duration-300">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 flex flex-col gap-4 shadow-sm hover:shadow-lg transition-shadow duration-300">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span
-            className={`material-symbols-outlined text-${color}-500 text-3xl`}
-          >
-            {fileIcons[type]}
+        <div className="flex items-center gap-3 overflow-hidden">
+          <span className={`material-symbols-outlined ${colorClass} text-3xl`}>
+            {icon}
           </span>
-          <span className="font-semibold text-gray-800 dark:text-gray-200">
-            {file.name}
+          {/* FIX 2: Corrected 'file.fileName' to 'file.filename' */}
+          <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">
+            {file.fileName || "untitled"}
           </span>
         </div>
-        <button className="text-gray-500 dark:text-gray-400 hover:text-primary">
-          <span className="material-symbols-outlined">more_vert</span>
+        <button
+          onClick={() => onDelete(file)}
+          className="text-gray-500 dark:text-gray-400 hover:text-red-500 flex-shrink-0 transition-colors"
+          aria-label="Delete file"
+        >
+          <span className="material-symbols-outlined">delete</span>
         </button>
       </div>
 
-      {type === "image" || type === "video" ? (
-        <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-background-dark flex items-center justify-center">
-          {type === "image" ? (
-            <div
-              className="w-full h-full bg-center bg-cover"
-              style={{ backgroundImage: `url(${file.url})` }}
-            ></div>
-          ) : (
-            <span className="material-symbols-outlined text-white text-5xl">
-              play_circle
-            </span>
-          )}
+      {type === "image" ? (
+        <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+          <img
+            src={file.url}
+            alt={file.filename} // Added alt text for accessibility
+            className="w-full h-full object-cover"
+          />
         </div>
       ) : (
-        <div className="flex items-center justify-center h-24 bg-gray-100 dark:bg-background-dark rounded-lg">
-          <span
-            className={`material-symbols-outlined text-${color}-500 text-5xl`}
-          >
-            {fileIcons[type]}
+        <div className="flex items-center justify-center h-24 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <span className={`material-symbols-outlined ${colorClass} text-5xl`}>
+            {icon}
           </span>
         </div>
       )}
 
       <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
-        <span>{file.size}</span>
-        <span>{file.date}</span>
+        {/* FIX 3: Use the formatter for file size */}
+        <span>{formatFileSize(file.size)}</span>
+        <span>{displayDate}</span>
       </div>
 
       <div className="flex gap-2 mt-auto">
         <button
-          className="flex-1 h-10 flex items-center justify-center gap-2 bg-primary/10 text-primary font-semibold rounded-lg hover:bg-primary/20 transition-colors"
+          className="flex-1 h-10 flex items-center justify-center gap-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold rounded-lg hover:bg-blue-500/20 transition-colors"
           onClick={() => onDownload(file)}
         >
           <span className="material-symbols-outlined text-base">download</span>
