@@ -1,18 +1,25 @@
-import { useState } from "react";
-import ProfileDialog from "./ProfileDialog";
+import React, { useState } from "react";
+import ProfileDialog from "./ProfileDialog.jsx";
 
 const Sidebar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const currentUser = {
-    name: "Alex Doe",
-    email: "alex.doe@email.com",
-    avatarUrl: "https://placehold.co/100x100/E2E8F0/4A5568?text=A",
-    storage: { used: 50, total: 100 },
+  // This function now directly returns the user info object or null
+  const currentUser = () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      return userInfo;
+    } catch (error) {
+      console.error("Could not parse userInfo from localStorage", error);
+      return null;
+    }
   };
 
   const handleLogout = () => {
-    console.log("Logging out...");
+    // Implement your actual logout logic here, e.g., removing from localStorage
+    localStorage.removeItem("userInfo");
+    // Redirect to login page
+    window.location.href = "/login";
     setIsProfileOpen(false);
   };
 
@@ -64,8 +71,18 @@ const Sidebar = () => {
             onClick={() => setIsProfileOpen(true)}
             className="w-full flex items-center gap-4 p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-blue-500/20 dark:hover:bg-blue-400/20 transition-colors text-left"
           >
-            <span className="material-symbols-outlined">account_circle</span>
-            <span className="hidden lg:inline font-medium">Profile</span>
+            <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden flex-shrink-0">
+              <img
+                src={currentUser.avatar}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="hidden lg:inline overflow-hidden">
+              <p className="font-semibold truncate">
+                {currentUser()?.name || "User"}
+              </p>
+            </div>
           </button>
         </div>
       </aside>
@@ -74,7 +91,7 @@ const Sidebar = () => {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         onLogout={handleLogout}
-        user={currentUser}
+        user={currentUser()}
       />
     </>
   );

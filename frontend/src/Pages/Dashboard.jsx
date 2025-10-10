@@ -159,13 +159,13 @@ const Dashboard = () => {
               <span className="material-symbols-outlined">upload</span>
               {loading ? "Uploading..." : "Upload"}
             </button>
-            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+            {/* <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
               <img
                 src="user"
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
-            </div>
+            </div> */}
           </div>
         </div>
 

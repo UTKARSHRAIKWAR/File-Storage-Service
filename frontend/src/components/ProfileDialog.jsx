@@ -8,7 +8,7 @@ const ProfileDialog = ({ user, isOpen, onClose }) => {
   }
 
   // Calculate storage percentage
-  const storagePercentage = (user.storage.used / user.storage.total) * 100;
+  // const storagePercentage = (user.storage.used / user.storage.total) * 100;
 
   const onLogout = () => {
     localStorage.removeItem("userInfo");
@@ -58,7 +58,7 @@ const ProfileDialog = ({ user, isOpen, onClose }) => {
           </p>
 
           {/* Storage Meter */}
-          <div className="w-full mt-8">
+          {/* <div className="w-full mt-8">
             <div className="flex justify-between mb-1 text-sm font-medium text-gray-600 dark:text-gray-300">
               <span>Storage Used</span>
               <span>{storagePercentage.toFixed(0)}%</span>
@@ -72,7 +72,7 @@ const ProfileDialog = ({ user, isOpen, onClose }) => {
             <p className="text-xs text-right mt-1 text-gray-500 dark:text-gray-400">
               {user.storage.used} GB / {user.storage.total} GB
             </p>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="w-full flex flex-col gap-3 mt-8">
