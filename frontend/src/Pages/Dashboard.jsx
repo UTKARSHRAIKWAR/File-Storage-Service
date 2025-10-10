@@ -82,6 +82,22 @@ const Dashboard = () => {
     }
   };
 
+  const handleView = async (file) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.token;
+      if (!token) return toast.error("User not logged in");
+
+      const { data } = await api.get(`/api/files/${file._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!data.url) throw new Error("No URL received");
+    } catch (error) {
+      console.error(error);
+      toast.error("get Url failed");
+    }
+  };
+
   const handleDelete = async (file) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));

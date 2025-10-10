@@ -1,12 +1,19 @@
-import React from 'react';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-const ProfileDialog = ({ user, isOpen, onClose, onLogout }) => {
+const ProfileDialog = ({ user, isOpen, onClose }) => {
+  const navigate = useNavigate();
   if (!isOpen) {
     return null;
   }
 
   // Calculate storage percentage
   const storagePercentage = (user.storage.used / user.storage.total) * 100;
+
+  const onLogout = () => {
+    localStorage.removeItem("userInfo");
+    navigate("/");
+  };
 
   return (
     // Backdrop
@@ -31,15 +38,24 @@ const ProfileDialog = ({ user, isOpen, onClose, onLogout }) => {
           {/* Profile Picture */}
           <div className="w-24 h-24 mb-4 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
             <img
-              src={user.avatarUrl || `https://placehold.co/100x100/E2E8F0/4A5568?text=${user.name.charAt(0)}`}
+              src={
+                user.avatarUrl ||
+                `https://placehold.co/100x100/E2E8F0/4A5568?text=${user.name.charAt(
+                  0
+                )}`
+              }
               alt="Profile"
               className="w-full h-full object-cover"
             />
           </div>
 
           {/* User Info */}
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name}</h2>
-          <p className="text-md text-gray-500 dark:text-gray-400">{user.email}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {user.name}
+          </h2>
+          <p className="text-md text-gray-500 dark:text-gray-400">
+            {user.email}
+          </p>
 
           {/* Storage Meter */}
           <div className="w-full mt-8">
@@ -77,4 +93,3 @@ const ProfileDialog = ({ user, isOpen, onClose, onLogout }) => {
 };
 
 export default ProfileDialog;
-

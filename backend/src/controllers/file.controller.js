@@ -108,7 +108,7 @@ const shareFile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      shareUrl: url,
+      url: url,
     });
   } catch (error) {
     res.status(500);
