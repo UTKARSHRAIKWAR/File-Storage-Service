@@ -10,19 +10,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
+
+const getAuthToken = () => {
+  try {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    return userInfo?.token || null;
+  } catch (error) {
+    console.error("Could not parse userInfo from localStorage", error);
+    return null;
+  }
+};
 
 const Dashboard = () => {
   const [files, setFiles] = useState([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      navigate("/"); // Redirect to login if no token
+      return; // Stop execution of the effect
+    }
+
     const fetchFiles = async () => {
       try {
-        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-        const token = userInfo?.token;
-        if (!token) return;
-
         const { data } = await api.get("/api/files", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -33,25 +47,26 @@ const Dashboard = () => {
       }
     };
     fetchFiles();
-  }, []);
+  }, [navigate]);
 
   const handleUpload = async (newFiles) => {
     setLoading(true);
-    try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const token = userInfo?.token;
-      if (!token) return toast.error("User not logged in");
+    const token = getAuthToken();
+    if (!token) {
+      toast.error("User not logged in");
+      setLoading(false);
+      return;
+    }
 
+    try {
       const formData = new FormData();
       newFiles.forEach((f) => formData.append("file", f));
-
       const { data } = await api.post("/api/files/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
-
       setFiles((prev) => [data.file, ...prev]);
       toast.success("File uploaded successfully");
     } catch (error) {
@@ -66,11 +81,9 @@ const Dashboard = () => {
   };
 
   const handleDownload = async (file) => {
+    const token = getAuthToken();
+    if (!token) return toast.error("User not logged in");
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const token = userInfo?.token;
-      if (!token) return toast.error("User not logged in");
-
       const { data } = await api.get(`/api/files/${file._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -82,34 +95,14 @@ const Dashboard = () => {
     }
   };
 
-  const handleView = async (file) => {
-    try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const token = userInfo?.token;
-      if (!token) return toast.error("User not logged in");
-
-      const { data } = await api.get(`/api/files/${file._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!data.url) throw new Error("No URL received");
-    } catch (error) {
-      console.error(error);
-      toast.error("get Url failed");
-    }
-  };
-
   const handleDelete = async (file) => {
+    const token = getAuthToken();
+    if (!token) return toast.error("User not logged in");
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const token = userInfo?.token;
-      if (!token) return toast.error("User not logged in");
-
       await api.delete(`/api/files/${file._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setFiles((prev) => prev.filter((f) => f._id !== file._id));
-
       toast.success("File is deleted!", {
         description: "File has been deleted.",
       });
@@ -122,19 +115,14 @@ const Dashboard = () => {
   };
 
   const handleShare = async (file) => {
+    const token = getAuthToken();
+    if (!token) return toast.error("User not logged in");
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const token = userInfo?.token;
-      if (!token) return toast.error("User not logged in");
-
       const { data } = await api.get(`/api/files/share/${file._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!data.url) throw new Error("No share URL received");
-
       await navigator.clipboard.writeText(data.url);
-
       toast.success("Shareable link copied to clipboard!", {
         description: "Anyone with this link can access the file.",
       });
@@ -173,7 +161,7 @@ const Dashboard = () => {
             </button>
             <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
               <img
-                src="/profile.png"
+                src="user"
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
@@ -194,10 +182,7 @@ const Dashboard = () => {
             {files.map((file) => (
               <FileCard
                 key={file._id}
-                file={{
-                  ...file,
-                  url: file.url || file.preview || "/default-preview.png",
-                }}
+                file={file}
                 onDownload={handleDownload}
                 onShare={handleShare}
                 onDelete={handleDelete}

@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+// Assuming your axios config is in the parent `src` directory.
+// Adjust this path if your file structure is different.
+import api from "../axios";
 
 // HELPER 1: Get the simple type from the full MIME type
 const getTypeFromMime = (mimeType) => {
+  if (!mimeType) return "default";
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType.startsWith("video/")) return "video";
   if (mimeType === "application/pdf") return "pdf";
@@ -15,7 +19,7 @@ const getTypeFromMime = (mimeType) => {
 
 // HELPER 2: Format bytes into a readable string (KB, MB)
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return "0 Bytes";
+  if (!bytes || bytes === 0) return "0 Bytes";
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -23,6 +27,9 @@ const formatFileSize = (bytes) => {
 };
 
 const FileCard = ({ file, onDownload, onShare, onDelete }) => {
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   const fileConfig = {
     pdf: { icon: "picture_as_pdf", colorClass: "text-red-500" },
     image: { icon: "image", colorClass: "text-blue-500" },
@@ -31,14 +38,45 @@ const FileCard = ({ file, onDownload, onShare, onDelete }) => {
     default: { icon: "article", colorClass: "text-gray-500" },
   };
 
-  // FIX 1: Use the helper function to get type from 'mimeType'
+  // Using file.mimeType (camelCase) for consistency
   const type = getTypeFromMime(file.mimeType);
   const { icon, colorClass } = fileConfig[type];
 
-  // FIX 3: Format the date (assuming you have a 'createdAt' field from your database)
+  useEffect(() => {
+    // Only try to fetch a preview if the file is an image
+    if (type === "image") {
+      setIsLoading(true);
+      const getPreviewUrl = async () => {
+        try {
+          const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
+          if (!token) return;
+
+          const { data } = await api.get(`/api/files/preview/${file._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (data.url) {
+            setPreviewUrl(data.url);
+          }
+        } catch (error) {
+          console.error(
+            "Failed to fetch preview URL for",
+            file.fileName,
+            error
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      getPreviewUrl();
+    } else {
+      setIsLoading(false); // Not an image, no preview to load
+    }
+  }, [file._id, file.fileName, type]); // Rerun if the file changes
+
   const displayDate = file.createdAt
     ? new Date(file.createdAt).toLocaleDateString()
-    : new Date().toLocaleDateString(); // Fallback to today's date
+    : new Date().toLocaleDateString();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl p-4 flex flex-col gap-4 shadow-sm hover:shadow-lg transition-shadow duration-300">
@@ -47,8 +85,10 @@ const FileCard = ({ file, onDownload, onShare, onDelete }) => {
           <span className={`material-symbols-outlined ${colorClass} text-3xl`}>
             {icon}
           </span>
-          {/* FIX 2: Corrected 'file.fileName' to 'file.filename' */}
-          <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">
+          <span
+            className="font-semibold text-gray-800 dark:text-gray-200 truncate"
+            title={file.fileName || "untitled"}
+          >
             {file.fileName || "untitled"}
           </span>
         </div>
@@ -63,11 +103,24 @@ const FileCard = ({ file, onDownload, onShare, onDelete }) => {
 
       {type === "image" ? (
         <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-          <img
-            src={file.url}
-            alt={file.filename} // Added alt text for accessibility
-            className="w-full h-full object-cover"
-          />
+          {isLoading ? (
+            <div className="w-full h-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+          ) : previewUrl ? (
+            <img
+              src={previewUrl}
+              alt={`Preview of ${file.fileName}`} // Using file.fileName for consistency
+              className="w-full h-full object-cover"
+              onError={() => setPreviewUrl(null)} // Handle broken image links
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <span
+                className={`material-symbols-outlined ${colorClass} text-5xl`}
+              >
+                broken_image
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-center h-24 bg-gray-100 dark:bg-gray-700 rounded-lg">
@@ -78,7 +131,6 @@ const FileCard = ({ file, onDownload, onShare, onDelete }) => {
       )}
 
       <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
-        {/* FIX 3: Use the formatter for file size */}
         <span>{formatFileSize(file.size)}</span>
         <span>{displayDate}</span>
       </div>

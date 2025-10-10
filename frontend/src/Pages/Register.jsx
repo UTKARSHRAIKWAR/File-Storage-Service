@@ -185,7 +185,7 @@
 
 // export default Register;
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import api from "../axios";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -197,6 +197,14 @@ const Register = () => {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("userInfo"));
+
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const onSubmit = async (e) => {
     e.preventDefault();

@@ -128,4 +128,28 @@ const listFile = async (req, res) => {
   }
 };
 
-export { uploadFile, getFile, listFile, deleteFile, shareFile };
+const previewFile = async (req, res) => {
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) {
+      res.status(404);
+      throw new Error("File not found");
+    }
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: file.key,
+    });
+
+    const url = await getSignedUrl(s3, command);
+
+    res.status(200).json({
+      success: true,
+      url: url,
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("could not generate url");
+  }
+};
+
+export { uploadFile, getFile, listFile, deleteFile, shareFile, previewFile };
